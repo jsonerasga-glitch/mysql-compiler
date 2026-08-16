@@ -6,6 +6,7 @@ if (is_logged_in()) {
     header('Location: index.php');
     exit;
 }
+$asset_v = date('Ymd');
 ?>
 <!doctype html>
 <html lang="en" data-bs-theme="light">
@@ -16,7 +17,7 @@ if (is_logged_in()) {
 
 <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 <link href="assets/vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-<link href="assets/css/style.css" rel="stylesheet">
+<link href="assets/css/style.css?v=<?= $asset_v ?>" rel="stylesheet">
 </head>
 <body class="login-body">
 
@@ -64,6 +65,6 @@ if (is_logged_in()) {
 </div>
 
 <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/login.js"></script>
+<script src="assets/js/login.js?v=<?= $asset_v ?>"></script>
 </body>
 </html>

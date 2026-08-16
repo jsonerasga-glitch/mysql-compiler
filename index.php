@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
 require_login_page();
+$asset_v = date('Ymd');
 ?>
 <!doctype html>
 <html lang="en" data-bs-theme="light">
@@ -13,7 +14,7 @@ require_login_page();
 <link href="assets/vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 <link href="assets/vendor/codemirror/lib/codemirror.min.css" rel="stylesheet">
 <link href="assets/vendor/codemirror/theme/eclipse.min.css" rel="stylesheet">
-<link href="assets/css/style.css" rel="stylesheet">
+<link href="assets/css/style.css?v=<?= $asset_v ?>" rel="stylesheet">
 </head>
 <body>
 
@@ -167,6 +168,6 @@ require_login_page();
 <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="assets/vendor/codemirror/lib/codemirror.min.js"></script>
 <script src="assets/vendor/codemirror/mode/sql/sql.min.js"></script>
-<script src="assets/js/app.js"></script>
+<script src="assets/js/app.js?v=<?= $asset_v ?>"></script>
 </body>
 </html>
