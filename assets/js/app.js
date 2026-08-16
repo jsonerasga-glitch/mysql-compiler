@@ -8,6 +8,19 @@
     editingConnectionId: null,
   };
 
+  const PAGE_SIZE = 200;
+  const resultState = {
+    sql: null,
+    database: null,
+    connectionId: null,
+    columns: [],
+    tbody: null,
+    rowsRendered: 0,
+    offset: 0,
+    hasMore: false,
+    loading: false,
+  };
+
   // ---------- helpers ----------
 
   async function api(url, options = {}) {
@@ -390,17 +403,28 @@
     setStatus('Running query...');
     document.getElementById('btn-run').disabled = true;
 
+    resultState.sql = null;
+    resultState.hasMore = false;
+
     try {
       const result = await api('api/query.php', {
         method: 'POST',
-        body: JSON.stringify({ id: state.activeConnectionId, database: state.activeDatabase, sql }),
+        body: JSON.stringify({ id: state.activeConnectionId, database: state.activeDatabase, sql, offset: 0, limit: PAGE_SIZE }),
       });
 
       if (result.type === 'select') {
-        renderResultGrid(result.columns, result.rows);
-        setStatus(`${result.row_count} row(s) returned.`, `${result.time_ms} ms`);
-        logMessage(`OK, ${result.row_count} row(s) returned in ${result.time_ms} ms.`, 'success');
+        renderResultGrid(result.columns, result.rows, { reset: true });
+
+        resultState.sql = sql;
+        resultState.database = state.activeDatabase;
+        resultState.connectionId = state.activeConnectionId;
+        resultState.offset = result.rows.length;
+        resultState.hasMore = !!result.has_more;
+
+        setStatus(`${result.rows.length}${result.has_more ? '+' : ''} row(s) fetched`, `${result.time_ms} ms`);
+        logMessage(`OK, ${result.rows.length}${result.has_more ? '+' : ''} row(s) fetched in ${result.time_ms} ms.`, 'success');
         showTab('grid');
+        maybeAutoFillGrid();
       } else if (result.type === 'exec') {
         renderMessageOnlyResult(`${result.affected_rows} row(s) affected.`);
         setStatus(`${result.affected_rows} row(s) affected.`, `${result.time_ms} ms`);
@@ -423,28 +447,100 @@
 
   document.getElementById('btn-run').addEventListener('click', runQuery);
 
-  function renderResultGrid(columns, rows) {
-    const wrapper = document.getElementById('result-grid-wrapper');
-    wrapper.innerHTML = '';
+  // ---------- result grid pagination (infinite scroll) ----------
 
-    if (rows.length === 0) {
-      wrapper.appendChild(el('div', { class: 'text-muted small p-3', text: 'Query returned no rows.' }));
-      return;
+  async function loadMoreRows() {
+    if (resultState.loading || !resultState.hasMore || !resultState.sql) return;
+    resultState.loading = true;
+
+    try {
+      const result = await api('api/query.php', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: resultState.connectionId,
+          database: resultState.database,
+          sql: resultState.sql,
+          offset: resultState.offset,
+          limit: PAGE_SIZE,
+        }),
+      });
+
+      if (result.type === 'select') {
+        renderResultGrid(result.columns, result.rows, { reset: false });
+        resultState.offset += result.rows.length;
+        resultState.hasMore = !!result.has_more;
+        setStatus(`${resultState.offset}${resultState.hasMore ? '+' : ''} row(s) fetched`, `${result.time_ms} ms`);
+        maybeAutoFillGrid();
+      } else {
+        resultState.hasMore = false;
+        if (result.type === 'error') {
+          logMessage(`Failed to fetch more rows: ${result.message}`, 'error');
+        }
+      }
+    } catch (err) {
+      logMessage(`Failed to fetch more rows: ${err.message}`, 'error');
+    } finally {
+      resultState.loading = false;
+    }
+  }
+
+  function onResultGridScroll() {
+    const wrapper = document.getElementById('result-grid-wrapper');
+    if (resultState.loading || !resultState.hasMore) return;
+    const threshold = 150;
+    if (wrapper.scrollTop + wrapper.clientHeight >= wrapper.scrollHeight - threshold) {
+      loadMoreRows();
+    }
+  }
+
+  document.getElementById('result-grid-wrapper').addEventListener('scroll', onResultGridScroll);
+
+  // If the page of rows doesn't fill (or barely fills) the visible area, there's no
+  // scrollbar to trigger onResultGridScroll, so keep fetching until it's scrollable.
+  function maybeAutoFillGrid() {
+    const wrapper = document.getElementById('result-grid-wrapper');
+    if (resultState.hasMore && !resultState.loading && wrapper.scrollHeight <= wrapper.clientHeight + 5) {
+      loadMoreRows();
+    }
+  }
+
+  function renderResultGrid(columns, rows, opts = {}) {
+    const wrapper = document.getElementById('result-grid-wrapper');
+    const reset = opts.reset !== false;
+
+    if (reset) {
+      wrapper.innerHTML = '';
+      resultState.rowsRendered = 0;
+      resultState.tbody = null;
+      resultState.columns = columns;
+
+      if (rows.length === 0) {
+        wrapper.appendChild(el('div', { class: 'text-muted small p-3', text: 'Query returned no rows.' }));
+        return;
+      }
+
+      const table = el('table', { class: 'table table-sm table-striped table-hover table-bordered mb-0' });
+      const thead = el('thead');
+      const headRow = el('tr');
+      headRow.appendChild(el('th', { text: '#', style: 'width:40px' }));
+      columns.forEach((c) => headRow.appendChild(el('th', { text: c })));
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = el('tbody');
+      table.appendChild(tbody);
+      wrapper.appendChild(table);
+      resultState.tbody = tbody;
     }
 
-    const table = el('table', { class: 'table table-sm table-striped table-hover table-bordered mb-0' });
-    const thead = el('thead');
-    const headRow = el('tr');
-    headRow.appendChild(el('th', { text: '#', style: 'width:40px' }));
-    columns.forEach((c) => headRow.appendChild(el('th', { text: c })));
-    thead.appendChild(headRow);
-    table.appendChild(thead);
+    const tbody = resultState.tbody;
+    if (!tbody) return;
 
-    const tbody = el('tbody');
-    rows.forEach((row, idx) => {
+    rows.forEach((row) => {
+      resultState.rowsRendered++;
       const tr = el('tr');
-      tr.appendChild(el('td', { class: 'text-muted', text: String(idx + 1) }));
-      columns.forEach((c) => {
+      tr.appendChild(el('td', { class: 'text-muted', text: String(resultState.rowsRendered) }));
+      resultState.columns.forEach((c) => {
         const value = row[c];
         if (value === null) {
           tr.appendChild(el('td', { class: 'cell-null', text: 'NULL' }));
@@ -454,9 +550,6 @@
       });
       tbody.appendChild(tr);
     });
-    table.appendChild(tbody);
-
-    wrapper.appendChild(table);
   }
 
   function renderMessageOnlyResult(message, isError = false) {
