@@ -71,6 +71,8 @@
     extraKeys: {
       'Ctrl-Enter': runQuery,
       'Cmd-Enter': runQuery,
+      'Ctrl-Alt-H': highlightCurrentStatement,
+      'Cmd-Alt-H': highlightCurrentStatement,
     },
   });
 
@@ -78,6 +80,36 @@
     editor.setValue('');
     editor.focus();
   });
+
+  // ---------- highlight (select) statement at cursor ----------
+  // Selects the SQL statement the cursor is currently inside of, bounded by the
+  // nearest semicolons (or the start/end of the document) — same effect as dragging
+  // the mouse over it. runQuery() already runs the selection when one is present,
+  // so this lets a specific statement be run without manual drag-selecting.
+
+  function highlightCurrentStatement() {
+    const text = editor.getValue();
+    const cursorIndex = editor.indexFromPos(editor.getCursor());
+
+    const prevSemi = text.lastIndexOf(';', cursorIndex - 1);
+    const nextSemi = text.indexOf(';', cursorIndex);
+
+    let start = prevSemi === -1 ? 0 : prevSemi + 1;
+    let end = nextSemi === -1 ? text.length : nextSemi;
+
+    while (start < end && /\s/.test(text[start])) start++;
+    while (end > start && /\s/.test(text[end - 1])) end--;
+
+    if (start >= end) {
+      editor.focus();
+      return;
+    }
+
+    editor.setSelection(editor.posFromIndex(start), editor.posFromIndex(end));
+    editor.focus();
+  }
+
+  document.getElementById('btn-highlight-line').addEventListener('click', highlightCurrentStatement);
 
   // ---------- results tabs ----------
 

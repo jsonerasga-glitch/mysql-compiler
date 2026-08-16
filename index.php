@@ -34,6 +34,9 @@ require_login_page();
 
   <div class="ms-auto d-flex align-items-center gap-2 navbar-actions">
     <span id="connection-status" class="badge text-bg-secondary">Not connected</span>
+    <button id="btn-highlight-line" class="btn btn-outline-warning btn-sm" title="Highlight statement at cursor">
+      <i class="bi bi-highlighter"></i> Highlight <kbd class="ms-1 d-none d-sm-inline">Ctrl+Alt+H</kbd>
+    </button>
     <button id="btn-run" class="btn btn-success btn-sm" disabled>
       <i class="bi bi-play-fill"></i> Run <kbd class="ms-1 d-none d-sm-inline">Ctrl+Enter</kbd>
     </button>
