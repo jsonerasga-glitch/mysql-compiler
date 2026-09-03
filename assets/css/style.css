@@ -205,6 +205,15 @@ body {
   max-width: 380px;
 }
 
+/* ---------- Exam setup page ---------- */
+
+.exam-setup-body {
+  display: block;
+  overflow: auto;
+  height: auto;
+  min-height: 100vh;
+}
+
 /* ---------- Responsive / mobile ---------- */
 
 .sidebar-backdrop {

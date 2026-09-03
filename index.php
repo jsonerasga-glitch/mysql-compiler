@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/exam.php';
 require_login_page();
 ?>
 <!doctype html>
@@ -41,6 +42,17 @@ require_login_page();
     <button id="btn-run" class="btn btn-success btn-sm" disabled>
       <i class="bi bi-play-fill"></i> Run <kbd class="ms-1 d-none d-sm-inline">Ctrl+Enter</kbd>
     </button>
+    <button id="btn-view-question" class="btn btn-outline-warning btn-sm">
+      <i class="bi bi-question-circle"></i> <span class="d-none d-sm-inline">My Question</span>
+    </button>
+    <button id="btn-check-answer" class="btn btn-outline-info btn-sm">
+      <i class="bi bi-check2-square"></i> <span class="d-none d-sm-inline">Check Answer</span>
+    </button>
+    <?php if (is_exam_admin()): ?>
+    <a href="exam_setup.php" class="btn btn-outline-light btn-sm" title="Exam Setup">
+      <i class="bi bi-mortarboard-fill"></i> <span class="d-none d-sm-inline">Exam Setup</span>
+    </a>
+    <?php endif; ?>
     <button id="btn-logout" class="btn btn-outline-light btn-sm" title="Logout">
       <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Logout</span>
     </button>
@@ -161,6 +173,36 @@ require_login_page();
           <button type="submit" class="btn btn-primary btn-sm">Save</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- View Question Modal -->
+<div class="modal fade" id="view-question-modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">My Exam Question</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="view-question-modal-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Check Answer Modal -->
+<div class="modal fade" id="check-answer-modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="check-answer-modal-title">Checking answer…</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="check-answer-modal-body"></div>
+      </div>
     </div>
   </div>
 </div>

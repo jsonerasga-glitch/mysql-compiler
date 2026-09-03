@@ -664,6 +664,77 @@
     }
   });
 
+  // ---------- view question ----------
+  // Self-service: shows the current user's own assigned exam question,
+  // read server-side from exam_questions_views (see api/view_question.php).
+
+  const viewQuestionModalEl = document.getElementById('view-question-modal');
+  const viewQuestionModal = new bootstrap.Modal(viewQuestionModalEl);
+  const viewQuestionModalBody = document.getElementById('view-question-modal-body');
+  const btnViewQuestion = document.getElementById('btn-view-question');
+
+  btnViewQuestion.addEventListener('click', async () => {
+    btnViewQuestion.disabled = true;
+    try {
+      const data = await api('api/view_question.php');
+      viewQuestionModalBody.innerHTML = '';
+      const pre = el('pre', { class: 'mb-0', style: 'white-space: pre-wrap; font-family: inherit;' });
+      pre.textContent = data.question || '(no question set)';
+      viewQuestionModalBody.appendChild(pre);
+      viewQuestionModal.show();
+    } catch (err) {
+      viewQuestionModalBody.innerHTML = '';
+      viewQuestionModalBody.appendChild(el('div', { class: 'text-danger', text: err.message }));
+      viewQuestionModal.show();
+    } finally {
+      btnViewQuestion.disabled = false;
+    }
+  });
+
+  // ---------- check answer ----------
+  // Self-service: grades the current user's own submitted answer (read from
+  // their prelim_exam table) against their assigned exam's answer key.
+  // Grading happens entirely server-side — the answer key never reaches the
+  // browser, only the correct/incorrect verdict does.
+
+  const checkAnswerModalEl = document.getElementById('check-answer-modal');
+  const checkAnswerModal = new bootstrap.Modal(checkAnswerModalEl);
+  const checkAnswerModalTitle = document.getElementById('check-answer-modal-title');
+  const checkAnswerModalBody = document.getElementById('check-answer-modal-body');
+  const btnCheckAnswer = document.getElementById('btn-check-answer');
+
+  btnCheckAnswer.addEventListener('click', async () => {
+    btnCheckAnswer.disabled = true;
+    btnCheckAnswer.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Checking...';
+    checkAnswerModalTitle.innerHTML = 'Checking answer…';
+    checkAnswerModalBody.innerHTML = '';
+    checkAnswerModal.show();
+
+    try {
+      const data = await api('api/check_answer.php', { method: 'POST' });
+
+      checkAnswerModalTitle.innerHTML = data.correct
+        ? '<i class="bi bi-check-circle-fill text-success"></i> Correct answer'
+        : '<i class="bi bi-x-circle-fill text-danger"></i> Incorrect answer';
+
+      checkAnswerModalBody.innerHTML = '';
+      checkAnswerModalBody.appendChild(el('div', { class: 'mb-2', text: data.reason }));
+      if (data.student_sql) {
+        checkAnswerModalBody.appendChild(el('div', { class: 'small text-muted mb-1', text: 'Your submitted answer:' }));
+        const pre = el('pre', { class: 'bg-light border rounded p-2 small mb-0' });
+        pre.textContent = data.student_sql;
+        checkAnswerModalBody.appendChild(pre);
+      }
+    } catch (err) {
+      checkAnswerModalTitle.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning"></i> Could not check answer';
+      checkAnswerModalBody.innerHTML = '';
+      checkAnswerModalBody.appendChild(el('div', { class: 'text-danger', text: err.message }));
+    } finally {
+      btnCheckAnswer.disabled = false;
+      btnCheckAnswer.innerHTML = '<i class="bi bi-check2-square"></i> <span class="d-none d-sm-inline">Check Answer</span>';
+    }
+  });
+
   // ---------- lab exam monitoring ----------
   // Only active when config/config.php sets LAB_EXAM_MODE = true (see index.php,
   // which mirrors it into window.APP_CONFIG.labExamMode). Reports tab-switch /
