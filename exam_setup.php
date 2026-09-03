@@ -52,11 +52,12 @@ require_exam_admin_page();
           <th style="width:240px">Username</th>
           <th style="width:110px">Question</th>
           <th style="width:110px">Sync</th>
+          <th style="width:110px">Check</th>
           <th>Status</th>
         </tr>
       </thead>
       <tbody id="exams-tbody">
-        <tr><td colspan="5" class="text-muted small">Loading...</td></tr>
+        <tr><td colspan="6" class="text-muted small">Loading...</td></tr>
       </tbody>
     </table>
   </div>

@@ -40,7 +40,7 @@
     tbody.innerHTML = '';
 
     if (!exams.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-muted small">No exams found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="text-muted small">No exams found.</td></tr>';
       return;
     }
 
@@ -71,10 +71,16 @@
       syncBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Sync';
       syncTd.appendChild(syncBtn);
 
+      const checkTd = document.createElement('td');
+      const checkBtn = document.createElement('button');
+      checkBtn.className = 'btn btn-sm btn-outline-success w-100';
+      checkBtn.innerHTML = '<i class="bi bi-check2-square"></i> Check';
+      checkTd.appendChild(checkBtn);
+
       const statusTd = document.createElement('td');
       statusTd.className = 'small exam-status';
 
-      tr.append(idTd, userTd, questionTd, syncTd, statusTd);
+      tr.append(idTd, userTd, questionTd, syncTd, checkTd, statusTd);
       tbody.appendChild(tr);
 
       let savedValue = userInput.value;
@@ -151,6 +157,39 @@
         } finally {
           syncBtn.disabled = false;
           syncBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Sync';
+        }
+      });
+
+      checkBtn.addEventListener('click', async () => {
+        checkBtn.disabled = true;
+        checkBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Checking...';
+        statusTd.innerHTML = '';
+
+        const saved = await saveUsername();
+        if (!saved) {
+          checkBtn.disabled = false;
+          checkBtn.innerHTML = '<i class="bi bi-check2-square"></i> Check';
+          return;
+        }
+
+        try {
+          const data = await api('api/exam_check.php', {
+            method: 'POST',
+            body: JSON.stringify({ exam_id: exam.exam_id }),
+          });
+
+          if (data.correct) {
+            statusTd.innerHTML =
+              `<span class="text-success"><i class="bi bi-check-circle-fill"></i> Passed — score set to ${data.score}.</span>`;
+          } else {
+            statusTd.innerHTML =
+              `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> Failed — score set to ${data.score}.</span>`;
+          }
+        } catch (err) {
+          statusTd.innerHTML = `<span class="text-danger">${err.message}</span>`;
+        } finally {
+          checkBtn.disabled = false;
+          checkBtn.innerHTML = '<i class="bi bi-check2-square"></i> Check';
         }
       });
     }
