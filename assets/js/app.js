@@ -718,7 +718,9 @@
         : '<i class="bi bi-x-circle-fill text-danger"></i> Incorrect answer';
 
       checkAnswerModalBody.innerHTML = '';
-      checkAnswerModalBody.appendChild(el('div', { class: 'mb-2', text: data.reason }));
+      checkAnswerModalBody.appendChild(
+        el('div', { class: `mb-2 fw-bold ${data.correct ? 'text-success' : 'text-danger'}`, text: data.correct ? 'Pass' : 'Failed' })
+      );
       if (data.student_sql) {
         checkAnswerModalBody.appendChild(el('div', { class: 'small text-muted mb-1', text: 'Your submitted answer:' }));
         const pre = el('pre', { class: 'bg-light border rounded p-2 small mb-0' });

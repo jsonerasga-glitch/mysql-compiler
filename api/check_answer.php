@@ -10,8 +10,9 @@ require_once __DIR__ . '/../includes/query_log.php';
 // Self-service: any logged-in user checks their OWN assigned exam. The
 // answer key lives in dbms_exam.exams, which students are never GRANTed
 // access to (that would leak it) — so this always reads it through
-// json_root's own saved connection, server-side, and only ever returns the
-// graded verdict (never the answer key or expected result) to the caller.
+// json_root's own saved connection, server-side, and only ever returns a
+// bare pass/fail verdict (never the answer key, expected result, or any
+// hint about what's wrong) to the caller.
 
 require_login_api();
 
@@ -59,7 +60,7 @@ try {
 
 try {
     $answerStmt = $studentPdo->prepare(
-        'SELECT student_answer FROM prelim_exam WHERE exam_id = ? ORDER BY id DESC LIMIT 1'
+        'SELECT sql_syntax FROM prelim_exam WHERE exam_id = ? ORDER BY id DESC LIMIT 1'
     );
     $answerStmt->execute([$examId]);
     $studentSql = $answerStmt->fetchColumn();
@@ -67,25 +68,16 @@ try {
     json_error('Could not read your prelim_exam table: ' . $e->getMessage(), 500);
 }
 
+// Every path below is a grading outcome, not a system error, so each one
+// reports a bare pass/fail — no reason, no hint about what was wrong.
+
 if ($studentSql === false || trim((string) $studentSql) === '') {
-    json_response([
-        'ok' => true,
-        'exam_id' => $examId,
-        'correct' => false,
-        'reason' => "You haven't submitted an answer yet.",
-        'student_sql' => null,
-    ]);
+    json_response(['ok' => true, 'exam_id' => $examId, 'correct' => false, 'student_sql' => null]);
 }
 
 $studentSql = trim((string) $studentSql);
 if (!is_select_only($studentSql)) {
-    json_response([
-        'ok' => true,
-        'exam_id' => $examId,
-        'correct' => false,
-        'reason' => 'Your submitted answer is not a plain SELECT query.',
-        'student_sql' => $studentSql,
-    ]);
+    json_response(['ok' => true, 'exam_id' => $examId, 'correct' => false, 'student_sql' => $studentSql]);
 }
 
 try {
@@ -105,13 +97,7 @@ try {
 } catch (PDOException $e) {
     $timeMs = round((microtime(true) - $start) * 1000, 2);
     log_query_execution($adminProfile, EXAM_DATABASE, $studentSql, 'error', null, null, null, $e->getMessage(), $timeMs);
-    json_response([
-        'ok' => true,
-        'exam_id' => $examId,
-        'correct' => false,
-        'reason' => 'Your submitted query failed to execute: ' . $e->getMessage(),
-        'student_sql' => $studentSql,
-    ]);
+    json_response(['ok' => true, 'exam_id' => $examId, 'correct' => false, 'student_sql' => $studentSql]);
 }
 
 $result = grade_answer($expected, $student);
@@ -120,6 +106,5 @@ json_response([
     'ok' => true,
     'exam_id' => $examId,
     'correct' => $result['correct'],
-    'reason' => $result['reason'],
     'student_sql' => $studentSql,
 ]);

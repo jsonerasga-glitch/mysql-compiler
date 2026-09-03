@@ -3,6 +3,7 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/mysql_client.php';
 require_once __DIR__ . '/../includes/response.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/exam.php';
 
 require_login_api();
 
@@ -36,14 +37,18 @@ try {
         $stmt->execute([$database, $table]);
         json_response($stmt->fetchAll(PDO::FETCH_ASSOC));
     } elseif ($database) {
-        // List tables and views for a database.
+        // List tables for a database. Views are only shown to the exam
+        // admin — students should never see exam_questions_views (or any
+        // other view) in their schema tree.
         $pdo = open_target_pdo($profile, $database);
-        $stmt = $pdo->prepare(
-            'SELECT TABLE_NAME AS name, TABLE_TYPE AS type
-             FROM information_schema.TABLES
-             WHERE TABLE_SCHEMA = ?
-             ORDER BY TABLE_NAME'
-        );
+        $sql = 'SELECT TABLE_NAME AS name, TABLE_TYPE AS type
+                FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA = ?';
+        if (!is_exam_admin()) {
+            $sql .= " AND TABLE_TYPE = 'BASE TABLE'";
+        }
+        $sql .= ' ORDER BY TABLE_NAME';
+        $stmt = $pdo->prepare($sql);
         $stmt->execute([$database]);
         json_response($stmt->fetchAll(PDO::FETCH_ASSOC));
     } else {
