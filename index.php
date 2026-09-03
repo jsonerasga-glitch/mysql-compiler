@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/includes/auth.php';
 require_login_page();
 ?>
@@ -167,6 +168,7 @@ require_login_page();
 <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="assets/vendor/codemirror/lib/codemirror.min.js"></script>
 <script src="assets/vendor/codemirror/mode/sql/sql.min.js"></script>
+<script>window.APP_CONFIG = { labExamMode: <?= LAB_EXAM_MODE ? 'true' : 'false' ?> };</script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>

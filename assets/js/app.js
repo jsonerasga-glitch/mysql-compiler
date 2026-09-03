@@ -664,9 +664,62 @@
     }
   });
 
+  // ---------- lab exam monitoring ----------
+  // Only active when config/config.php sets LAB_EXAM_MODE = true (see index.php,
+  // which mirrors it into window.APP_CONFIG.labExamMode). Reports tab-switch /
+  // app-switch events and network connection type to api/lab_exam_event.php,
+  // which itself re-checks the flag server-side and no-ops otherwise.
+
+  function initLabExamMonitoring() {
+    if (!window.APP_CONFIG || !window.APP_CONFIG.labExamMode) return;
+
+    function sendEvent(eventType, detail) {
+      const payload = JSON.stringify({ event_type: eventType, detail: detail || null });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('api/lab_exam_event.php', new Blob([payload], { type: 'application/json' }));
+      } else {
+        fetch('api/lab_exam_event.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true,
+        }).catch(() => {});
+      }
+    }
+
+    // Fires for alt-tab, minimizing, switching desktop virtual desktops, and
+    // backgrounding the mobile browser app — the one signal both platforms
+    // raise consistently. window blur/focus is a secondary, less reliable signal.
+    document.addEventListener('visibilitychange', () => {
+      sendEvent(document.hidden ? 'tab_hidden' : 'tab_visible');
+    });
+
+    window.addEventListener('blur', () => sendEvent('window_blur'));
+    window.addEventListener('focus', () => sendEvent('window_focus'));
+
+    // pagehide covers actual tab/window close and navigation away; it's more
+    // reliable than beforeunload on mobile browsers.
+    window.addEventListener('pagehide', () => sendEvent('page_hide'));
+
+    // Network Information API: Chromium/Android report connection.type
+    // ('wifi', 'cellular', ...); Safari doesn't implement this API at all,
+    // so there's no reliable Wi-Fi vs cellular signal there.
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (conn) {
+      const reportConnection = () => {
+        sendEvent('network_info', `type=${conn.type || 'unknown'};effectiveType=${conn.effectiveType || 'unknown'}`);
+      };
+      reportConnection();
+      conn.addEventListener('change', reportConnection);
+    } else {
+      sendEvent('network_info', 'type=unsupported');
+    }
+  }
+
   // ---------- init ----------
 
   async function init() {
+    initLabExamMonitoring();
     await loadConnections();
 
     try {

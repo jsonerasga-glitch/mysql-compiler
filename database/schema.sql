@@ -33,3 +33,15 @@ CREATE TABLE IF NOT EXISTS query_log (
     INDEX idx_query_log_client_ip (client_ip),
     INDEX idx_query_log_executed_at (executed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS lab_exam_events (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    db_username VARCHAR(255) NULL,
+    client_ip VARCHAR(45) NULL,
+    event_type VARCHAR(30) NOT NULL,
+    detail VARCHAR(255) NULL,
+    user_agent VARCHAR(255) NULL,
+    occurred_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_lab_exam_events_db_username (db_username),
+    INDEX idx_lab_exam_events_occurred_at (occurred_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
