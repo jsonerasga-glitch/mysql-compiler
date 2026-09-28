@@ -18,12 +18,23 @@ function get_connection_profile(int $id): ?array
     return $row ?: null;
 }
 
+// Inside Docker, "localhost" is the container itself, not the PC running it.
+// When LOCALHOST_ALIAS is set (docker-compose.yml), send those hosts there.
+function resolve_target_host(string $host): string
+{
+    $alias = getenv('LOCALHOST_ALIAS');
+    if ($alias && in_array(strtolower($host), ['localhost', '127.0.0.1', '::1'], true)) {
+        return $alias;
+    }
+    return $host;
+}
+
 function open_target_pdo(array $profile, ?string $database = null): PDO
 {
     $db = $database ?? ($profile['database_name'] ?: null);
     $dsn = sprintf(
         'mysql:host=%s;port=%d%s;charset=utf8mb4',
-        $profile['host'],
+        resolve_target_host($profile['host']),
         (int) $profile['port'],
         $db ? ';dbname=' . $db : ''
     );

@@ -1,0 +1,20 @@
+services:
+  sql-client:
+    build: .
+    image: mysql-web-client
+    container_name: mysql-web-client
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8081}:80"
+    env_file: .env
+    environment:
+      # Lets users type "localhost" / "127.0.0.1" on the login page and still
+      # reach the MySQL server installed on this PC.
+      LOCALHOST_ALIAS: host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - app-data:/var/lib/sql-client
+
+volumes:
+  app-data:
