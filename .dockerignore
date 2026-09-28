@@ -1,0 +1,12 @@
+.git
+.gitignore
+.claude
+.env
+.env.example
+config
+sample
+Dockerfile
+docker-compose.yml
+.dockerignore
+*.bat
+README.md
